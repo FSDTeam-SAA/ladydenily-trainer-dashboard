@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Logo } from "@/components/logo"
 import { Mail } from "lucide-react"
+import Image from "next/image"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
@@ -58,11 +59,11 @@ export default function ForgotPasswordPage() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex justify-center mb-8">
-            <Logo />
+            <Image src="/LTA_LOGO.png" alt="Logo" width={100} height={100} className="w-[151px] h-[80px]" />
           </div>
 
           {/* Forgot Password Form */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-8">
+          <div className="">
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-slate-800 mb-2">Forgot Password</h1>
               <p className="text-slate-600">
@@ -82,20 +83,20 @@ export default function ForgotPasswordPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6 bg-[#E8ECF1] p-6 rounded-lg ">
               <div className="space-y-2">
                 <Label htmlFor="email" className="sr-only">
                   Email
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#4E4E4E] h-5 w-5" />
                   <Input
                     id="email"
                     type="email"
                     placeholder="Email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 h-12 bg-slate-100 border-0 rounded-lg"
+                    className="pl-10 h-12 bg-[#B8C3D4] border-0 rounded-lg text-[#4E4E4E] placeholder:text-[#4E4E4E]"
                     required
                   />
                 </div>

@@ -25,7 +25,7 @@ export default function RootLayout({
       lang="en"
       className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}
     >
-      <body>
+      <body className="min-h-screen">
         <Suspense fallback={null}>
           <Providers>
             <LayoutWrapper>{children}</LayoutWrapper>

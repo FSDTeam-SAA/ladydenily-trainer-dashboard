@@ -124,3 +124,108 @@
     @apply bg-background text-foreground;
   }
 }
+
+
+
+
+
+/* QuillEditor custom styles */
+.list-item {
+  @apply text-base leading-relaxed text-white;
+}
+
+.list-item ul,
+.list-item ol {
+  @apply pl-5 text-white;
+  margin-top: 0.5em;
+  margin-bottom: 1em;
+}
+
+.list-item ul li,
+.list-item ol li {
+  @apply mb-2 text-white;
+  position: relative;
+  text-decoration: #d00;
+}
+
+.list-item ul li::before {
+  content: "•";
+  @apply text-white;
+  position: absolute;
+  left: -1em;
+}
+
+.list-item strong {
+  color: #fff !important;
+}
+.list-item ol {
+  counter-reset: item;
+}
+
+.list-item ol li {
+  counter-increment: item;
+}
+
+.list-item ol li::before {
+  content: counter(item) ".";
+  @apply text-gray-700;
+  position: absolute;
+  left: -1em;
+}
+
+/* Heading styles for the list items */
+.list-item h1,
+.list-item h2,
+.list-item h3,
+.list-item h4,
+.list-item h5,
+.list-item h6 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+  color: white !important;
+}
+.blogcontent {
+  color: white !important;
+}
+
+.list-item h1 {
+  @apply text-3xl;
+}
+
+.list-item h2 {
+  @apply text-2xl;
+}
+
+.list-item h3 {
+  @apply text-xl;
+}
+
+.list-item h4 {
+  @apply text-lg;
+}
+
+.list-item h5 {
+  @apply text-base;
+}
+
+.list-item h6 {
+  @apply text-sm;
+}
+
+.list-item p {
+  color: white !important;
+}
+.list-item span {
+  color: white !important;
+}
+
+/* Nested list styling */
+.list-item ul ul,
+.list-item ol ol,
+.list-item ul ol,
+.list-item ol ul {
+  @apply pl-5;
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}

@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/logo"
+import Image from "next/image"
 
 export default function VerifyOTPPage() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""])
@@ -93,11 +94,11 @@ export default function VerifyOTPPage() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex justify-center mb-8">
-            <Logo />
+            <Image src="/LTA_LOGO.png" alt="Logo" width={100} height={100} className="w-[151px] h-[80px]" />
           </div>
 
           {/* OTP Verification Form */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-8">
+          <div className="">
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-slate-800 mb-2">Verify OTP</h1>
               <p className="text-slate-600">
@@ -109,7 +110,7 @@ export default function VerifyOTPPage() {
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{message}</div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6 bg-[#E8ECF1] p-6 rounded-lg">
               <div className="flex justify-center gap-3">
                 {otp.map((digit, index) => (
                   <input
@@ -121,7 +122,7 @@ export default function VerifyOTPPage() {
                     value={digit}
                     onChange={(e) => handleInputChange(index, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(index, e)}
-                    className="w-12 h-12 text-center text-xl font-semibold bg-slate-100 border-0 rounded-lg focus:bg-white focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+                    className="w-12 h-12 text-center text-xl font-semibold bg-[#B8C3D4] border-0 rounded-lg focus:bg-white focus:ring-2 focus:ring-yellow-400 focus:outline-none"
                   />
                 ))}
               </div>

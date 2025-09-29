@@ -2,17 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react"; // Added useState for modal state
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
 import {
   LayoutDashboard,
-  Users,
-  BookOpen,
   User,
   Radio,
-  Gift,
   LogOut,
+  BookOpenText,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "./ui/button";
@@ -23,11 +21,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"; // Added Dialog imports
+} from "@/components/ui/dialog";
+import Image from "next/image";
 
 const navigation = [
   { name: "Overview", href: "/", icon: LayoutDashboard },
-  { name: "Courses", href: "/courses", icon: BookOpen },
+  { name: "Courses", href: "/courses-list", icon: BookOpenText },
   { name: "Students", href: "/students", icon: User },
   { name: "Community", href: "/community", icon: Radio },
 ];
@@ -38,25 +37,35 @@ const handleSignOut = () => {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false); // Added state for modal
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   return (
-    <div className="flex h-screen w-52 flex-col bg-sidebar border-r border-sidebar-border">
+    <div className="flex max-h-screen w-52 flex-col bg-sidebar border-r border-sidebar-border sticky top-0">
       {/* Logo */}
-      <div className="flex h-16 items-center px-4">
-        <Logo />
+      <div className="flex items-center p-4">
+        <Link href="/">
+          <Image
+            src="/LTA_LOGO.png"
+            alt="Logo"
+            width={1000}
+            height={1000}
+            className="w-[151px] h-[80px]"
+          />
+        </Link>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-2 py-4">
         {navigation.map((item) => {
-          const isActive = pathname === item.href;
+          // Improved isActive check to handle dynamic routes and trailing slashes
+          const isActive =
+            pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link
               key={item.name}
               href={item.href}
               className={cn(
-                "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                "group flex items-center px-3 py-4 my-4 text-sm font-medium rounded-md transition-colors",
                 isActive
                   ? "bg-primary text-primary-foreground"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"

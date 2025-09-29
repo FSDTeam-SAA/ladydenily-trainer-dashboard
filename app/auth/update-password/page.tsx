@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Logo } from "@/components/logo"
 import { Eye, EyeOff, Lock } from "lucide-react"
+import Image from "next/image"
 
 export default function UpdatePasswordPage() {
   const [newPassword, setNewPassword] = useState("")
@@ -75,11 +76,11 @@ export default function UpdatePasswordPage() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex justify-center mb-8">
-            <Logo />
+            <Image src="/LTA_LOGO.png" alt="Logo" width={100} height={100} className="w-[151px] h-[80px]" />
           </div>
 
           {/* Update Password Form */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-8">
+          <div className="">
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-slate-800 mb-2">Update Password</h1>
               <p className="text-slate-600">Create your new password</p>
@@ -97,7 +98,7 @@ export default function UpdatePasswordPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6 bg-[#E8ECF1] p-6 rounded-lg">
               <div className="space-y-2">
                 <Label htmlFor="newPassword" className="sr-only">
                   New Password
@@ -110,7 +111,7 @@ export default function UpdatePasswordPage() {
                     placeholder="New Password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="pl-10 pr-10 h-12 bg-slate-100 border-0 rounded-lg"
+                    className="pl-10 pr-10 h-12 bg-[#B8C3D4] border-0 rounded-lg"
                     required
                   />
                   <button
@@ -135,7 +136,7 @@ export default function UpdatePasswordPage() {
                     placeholder="Repeat New Password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pl-10 pr-10 h-12 bg-slate-100 border-0 rounded-lg"
+                    className="pl-10 pr-10 h-12 bg-[#B8C3D4] border-0 rounded-lg"
                     required
                   />
                   <button
