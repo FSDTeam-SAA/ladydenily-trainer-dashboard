@@ -1,12 +1,6 @@
-import React from 'react'
-import { CommunityDashboard } from './_components/communityPage'
+import { CommunityDashboard } from "./_components/communityPage";
 
-function page() {
-  return (
-    <div>
-      <CommunityDashboard/>
-    </div>
-  )
+
+export default function Home() {
+  return <CommunityDashboard />
 }
-
-export default page

@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import { signIn, getSession } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -9,7 +7,6 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Logo } from "@/components/logo"
 import { Eye, EyeOff, Mail, Lock } from "lucide-react"
 import { toast } from "sonner"
 import Image from "next/image"
@@ -22,13 +19,17 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const router = useRouter()
   const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get("callbackUrl") || "/"
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
 
   useEffect(() => {
-    // Check if user is already authenticated
+    // If user already has a session → redirect appropriately
     const checkSession = async () => {
       const session = await getSession()
-      if (session) {
+
+      console.log(session)
+      if (session?.user?.role === "trainer") {
+        router.push("/")
+      } else if (session) {
         router.push(callbackUrl)
       }
     }
@@ -52,9 +53,11 @@ export default function LoginPage() {
         setError("Invalid email or password")
       } else {
         toast.success("Login successful!")
-        // Get session to ensure user is authenticated
         const session = await getSession()
-        if (session) {
+
+        if (session?.user?.role === "trainer") {
+          router.push("/") // 👈 redirect trainer to home
+        } else {
           router.push(callbackUrl)
         }
       }
@@ -68,22 +71,19 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 relative overflow-hidden">
-      {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0 bg-[url('/abstract-trading-chart-pattern.jpg')] bg-cover bg-center" />
       </div>
 
       <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
         <div className="w-full max-w-md">
-          {/* Logo */}
           <div className="flex justify-center mb-8">
             <Image src="/LTA_LOGO.png" alt="Logo" width={100} height={100} className="w-[151px] h-[80px]" />
           </div>
 
-          {/* Login Form */}
           <div className="">
             <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-slate-800 mb-2">Hello,Welcome!</h1>
+              <h1 className="text-3xl font-bold text-slate-800 mb-2">Hello, Welcome!</h1>
               <p className="text-slate-600">Please Enter Your Details Below to Continue</p>
             </div>
 
