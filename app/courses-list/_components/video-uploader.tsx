@@ -30,13 +30,14 @@ const CHUNK_SIZE = 5 * 1024 * 1024 // 5MB chunks
 export function VideoUploader({
   videos,
   onVideosChange,
-  apiBaseUrl = "/api",
+  apiBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || "/api",
   label = "Videos",
   description = "Upload video files (MP4, AVI, MOV, etc.)",
   buttonText = "Add Videos",
   accept = "video/*",
   icon = "upload",
 }: VideoUploaderProps) {
+  const baseUrl = apiBaseUrl.replace(/\/$/, "")
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<{
     [key: string]: number
@@ -57,7 +58,7 @@ export function VideoUploader({
       const fileType = file.type
 
       // Step 1: Initiate multipart upload
-      const initiateRes = await fetch(`${apiBaseUrl}/upload/initiate`, {
+      const initiateRes = await fetch(`${baseUrl}/upload/initiate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fileName, fileType }),
@@ -81,7 +82,7 @@ export function VideoUploader({
         const partNumber = i + 1
 
         // Get signed URL for this part
-        const signedUrlRes = await fetch(`${apiBaseUrl}/upload/part-url`, {
+        const signedUrlRes = await fetch(`${baseUrl}/upload/part-url`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -128,7 +129,7 @@ export function VideoUploader({
       }
 
       // Step 3: Complete multipart upload
-      const completeRes = await fetch(`${apiBaseUrl}/upload/complete`, {
+      const completeRes = await fetch(`${baseUrl}/upload/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -157,6 +158,7 @@ export function VideoUploader({
 
     setUploading(true)
     const newErrors: { [key: string]: string } = {}
+    let nextVideos = [...videos]
 
     for (const file of Array.from(files)) {
       try {
@@ -171,7 +173,8 @@ export function VideoUploader({
           s3Url,
         }
 
-        onVideosChange([...videos, uploadedVideo])
+        nextVideos = [...nextVideos, uploadedVideo]
+        onVideosChange(nextVideos)
         setUploadProgress((prev) => {
           const newProgress = { ...prev }
           delete newProgress[file.name]
@@ -249,7 +252,7 @@ export function VideoUploader({
                     <p className="text-sm font-medium text-gray-900 truncate">{video.name}</p>
                     <p className="text-xs text-gray-500">
                       {formatFileSize(video.size)}
-                      {video.s3Url && " • ✓ Uploaded to S3"}
+                      {video.s3Url && " - Uploaded to S3"}
                     </p>
                   </div>
                 </div>

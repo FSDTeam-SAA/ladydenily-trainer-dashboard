@@ -1,6 +1,62 @@
 import type { NextAuthOptions } from "next-auth"
+import type { JWT } from "next-auth/jwt"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { authAPI } from "./api"
+
+const API_BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3001").replace(/\/$/, "")
+
+const decodeJwtPayload = (token: string) => {
+  const [, payload] = token.split(".")
+  if (!payload) return null
+  try {
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/")
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), "=")
+    return JSON.parse(Buffer.from(padded, "base64").toString("utf-8"))
+  } catch (error) {
+    return null
+  }
+}
+
+const getAccessTokenExpiresAt = (accessToken?: string) => {
+  if (!accessToken) return 0
+  const payload = decodeJwtPayload(accessToken)
+  if (!payload?.exp) return 0
+  return Number(payload.exp) * 1000
+}
+
+const refreshAccessToken = async (token: JWT): Promise<JWT> => {
+  if (!token.refreshToken) {
+    return { ...token, error: "RefreshTokenMissing" }
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/refresh-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: token.refreshToken }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok || !data?.data?.accessToken) {
+      throw new Error(data?.message || "Failed to refresh token")
+    }
+
+    const accessToken = data.data.accessToken
+    const refreshToken = data.data.refreshToken || token.refreshToken
+
+    return {
+      ...token,
+      accessToken,
+      refreshToken,
+      accessTokenExpires: getAccessTokenExpiresAt(accessToken),
+      error: undefined,
+    }
+  } catch (error) {
+    console.error("Refresh token error:", error)
+    return { ...token, error: "RefreshAccessTokenError" }
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -54,8 +110,18 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role
         token.accessToken = user.accessToken
         token.refreshToken = user.refreshToken
+        token.accessTokenExpires = getAccessTokenExpiresAt(user.accessToken)
+        return token
       }
-      return token
+
+      if (token.accessToken && token.accessTokenExpires) {
+        const expiresSoon = Date.now() >= token.accessTokenExpires - 60 * 1000
+        if (!expiresSoon) {
+          return token
+        }
+      }
+
+      return await refreshAccessToken(token)
     },
     async session({ session, token }) {
       if (token) {
@@ -63,6 +129,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string
         session.accessToken = token.accessToken as string
         session.refreshToken = token.refreshToken as string
+        session.error = token.error as string | undefined
       }
       return session
     },

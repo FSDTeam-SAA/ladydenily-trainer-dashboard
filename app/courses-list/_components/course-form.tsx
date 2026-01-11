@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormItem, FormLabel, FormControl, FormField, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
@@ -11,6 +12,8 @@ import { Plus, X, Upload } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { VideoUploader } from "./video-uploader"
 import QuillEditor from "./QuillEditor"
+import { useCreateCourse } from "@/lib/coursesapi"
+import { toast } from "@/hooks/use-toast"
 
 interface UploadedFile {
   file: File
@@ -33,11 +36,13 @@ interface Module {
 
 interface CourseFormProps {
   course?: any
-  onSave?: () => void
+  onSave?: (course?: any) => void
   onCancel?: () => void
 }
 
 export function CourseForm({ course, onSave, onCancel }: CourseFormProps) {
+  const { data: session } = useSession()
+  const createCourseMutation = useCreateCourse()
   const [modules, setModules] = useState<Module[]>([
     {
       tempId: crypto.randomUUID(),
@@ -100,13 +105,30 @@ export function CourseForm({ course, onSave, onCancel }: CourseFormProps) {
     }
   }
 
-  const onSubmit = (data: any) => {
+  const onSubmit = async (data: any) => {
+    if (course) {
+      onSave?.()
+      return
+    }
+
+    if (!session?.accessToken) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to create a course.",
+        variant: "destructive",
+      })
+      return
+    }
+
     const formData = new FormData()
     formData.append("name", data.name)
     formData.append("description", data.description || "")
     formData.append("price", data.price.toString())
     formData.append("offerPrice", data.offerPrice.toString())
-    formData.append("coordinator", data.coordinator || "")
+
+    if (session.user?.id) {
+      formData.append("coordinator", JSON.stringify([session.user.id]))
+    }
 
     if (photoFile) {
       formData.append("photo", photoFile)
@@ -115,29 +137,34 @@ export function CourseForm({ course, onSave, onCancel }: CourseFormProps) {
     // Prepare modules with S3 URLs
     const modulesData = modules.map((module) => ({
       name: module.name,
-      videos: module.videos.map((v) => ({
+      videos: module.videos.map((v, index) => ({
         name: v.name,
-        s3Url: v.s3Url,
+        no: index + 1,
+        url: v.s3Url,
       })),
       resources: module.resources.map((r) => ({
         name: r.name,
-        s3Url: r.s3Url,
+        url: r.s3Url,
       })),
     }))
 
     formData.append("modules", JSON.stringify(modulesData))
 
-    console.log("Form submitted with data:", {
-      name: data.name,
-      description: data.description,
-      price: data.price,
-      offerPrice: data.offerPrice,
-      coordinator: data.coordinator,
-      photo: photoFile?.name,
-      modules: modulesData,
-    })
+    try {
+      const response = await createCourseMutation.mutateAsync({
+        data: formData,
+        token: session.accessToken,
+      })
 
-    onSave?.()
+      onSave?.(response?.data ?? response)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create course"
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -369,8 +396,12 @@ export function CourseForm({ course, onSave, onCancel }: CourseFormProps) {
             <Button type="button" variant="outline" onClick={onCancel} className="border-gray-300 bg-transparent">
               Cancel
             </Button>
-            <Button type="submit" className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium">
-              Create Course
+            <Button
+              type="submit"
+              className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
+              disabled={createCourseMutation.isPending}
+            >
+              {createCourseMutation.isPending ? "Creating..." : "Create Course"}
             </Button>
           </div>
         </form>
