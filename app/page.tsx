@@ -1,12 +1,5 @@
-import DashboardPage from '@/components/mainDashboard'
-import React from 'react'
+import { redirect } from "next/navigation";
 
-function page() {
-  return (
-    <div>
-      <DashboardPage/>
-    </div>
-  )
+export default function Page() {
+  redirect("/dashboard");
 }
-
-export default page

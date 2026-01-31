@@ -17,20 +17,21 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Edit, Trash2, Search, Plus } from "lucide-react"
+import { Edit, Eye, Trash2, Search, Plus } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "@/hooks/use-toast"
-import type { Course } from "@/lib/api"
+import type { Course } from "@/lib/coursesapi"
 import { DeleteConfirmationModal } from "./delete-confirmation-modal"
 import Image from "next/image"
 
 interface CoursesListProps {
   onEditCourse?: (course: Course) => void
   onCreateCourse?: () => void
+  onViewCourse?: (course: Course) => void
   onDeleteCourse?: (courseId: string) => void
 }
 
-export function CoursesList({ onEditCourse, onCreateCourse, onDeleteCourse }: CoursesListProps) {
+export function CoursesList({ onEditCourse, onCreateCourse, onViewCourse, onDeleteCourse }: CoursesListProps) {
   const { data: session } = useSession()
   const [currentPage, setCurrentPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState("")
@@ -51,12 +52,17 @@ export function CoursesList({ onEditCourse, onCreateCourse, onDeleteCourse }: Co
   // Filter courses based on search term
   const filteredCourses = useMemo(() => {
     if (!searchTerm) return courses
-    return courses.filter(
-      (course) =>
+    return courses.filter((course) => {
+      const description = course.description ? course.description.replace(/<[^>]+>/g, "") : ""
+      const coordinatorMatch = course.coordinator?.some((coord) =>
+        coord.name.toLowerCase().includes(searchTerm.toLowerCase()),
+      )
+      return (
         course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.coordinator.some((coord) => coord.name.toLowerCase().includes(searchTerm.toLowerCase())),
-    )
+        description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        coordinatorMatch
+      )
+    })
   }, [courses, searchTerm])
 
   // Pagination logic
@@ -106,6 +112,13 @@ export function CoursesList({ onEditCourse, onCreateCourse, onDeleteCourse }: Co
       style: "currency",
       currency: "USD",
     }).format(price)
+  }
+
+  const normalizePhotoSrc = (src?: string) => {
+    if (!src) return "/placeholder.svg?height=48&width=48&query=course"
+    const normalized = src.replace(/\\/g, "/")
+    if (normalized.startsWith("http")) return normalized
+    return `/${normalized.replace(/^\/+/, "")}`
   }
 
   if (isLoading) {
@@ -185,16 +198,13 @@ export function CoursesList({ onEditCourse, onCreateCourse, onDeleteCourse }: Co
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div>
-                        <Image
-                          src={course.photo || "/placeholder.svg?height=48&width=48&query=course"}
-                          alt={course.name}
-                          width={48}
-                          height={48}
-                        />
+                        <Image src={normalizePhotoSrc(course.photo)} alt={course.name} width={48} height={48} />
                       </div>
                       <div>
                         <div className="font-medium">{course.name}</div>
-                        <div className="text-sm text-muted-foreground line-clamp-1">{course.description}</div>
+                        <div className="text-sm text-muted-foreground line-clamp-1">
+                          {course.description ? course.description.replace(/<[^>]+>/g, "") : "No description"}
+                        </div>
                       </div>
                     </div>
                   </TableCell>
@@ -222,6 +232,9 @@ export function CoursesList({ onEditCourse, onCreateCourse, onDeleteCourse }: Co
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => onViewCourse?.(course)} className="h-8 w-8">
+                        <Eye className="w-4 h-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => onEditCourse?.(course)} className="h-8 w-8">
                         <Edit className="w-4 h-4" />
                       </Button>

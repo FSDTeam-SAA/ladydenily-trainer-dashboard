@@ -1,25 +1,31 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Course } from "@/lib/coursesapi"
 import { CoursesList } from "./_components/allCoursesList"
 import { CourseForm } from "./_components/course-form"
-
-type ViewMode = "list" | "create" | "edit" | "modules"
+import { CourseDetailsModal } from "./_components/course-details-modal"
 
 export default function HomePage() {
-  const [viewMode, setViewMode] = useState<ViewMode>("list")
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
 
   const handleEditCourse = (course: Course) => {
     setSelectedCourse(course)
-    setViewMode("edit")
+    setIsEditOpen(true)
   }
 
   const handleCreateCourse = () => {
     setSelectedCourse(null)
-    setViewMode("create")
+    setIsCreateOpen(true)
+  }
+
+  const handleViewCourse = (course: Course) => {
+    setSelectedCourse(course)
+    setIsDetailsOpen(true)
   }
 
   const handleDeleteCourse = (courseId: string) => {
@@ -28,51 +34,42 @@ export default function HomePage() {
 
   const handleSaveCourse = (course: any) => {
     console.log("Course saved:", course)
-    setViewMode("list")
+    setIsCreateOpen(false)
+    setIsEditOpen(false)
     setSelectedCourse(null)
   }
 
   const handleCancelForm = () => {
-    setViewMode("list")
+    setIsCreateOpen(false)
+    setIsEditOpen(false)
     setSelectedCourse(null)
   }
-
-  const handleViewModules = () => {
-    setViewMode("modules")
-  }
-
-
 
   return (
     <div className="pt-16">
       <div className="py-8 px-4">
-        {/* Navigation */}
-        {viewMode !== "list" && (
-          <div className="mb-6">
-            <Button variant="outline" onClick={() => setViewMode("list")}>
-              ← Back to Courses
-            </Button>
-          </div>
-        )}
+        <CoursesList
+          onEditCourse={handleEditCourse}
+          onCreateCourse={handleCreateCourse}
+          onViewCourse={handleViewCourse}
+          onDeleteCourse={handleDeleteCourse}
+        />
 
-        
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto p-0">
+            <CourseForm onSave={handleSaveCourse} onCancel={handleCancelForm} variant="modal" />
+          </DialogContent>
+        </Dialog>
 
-        {/* Content based on view mode */}
-        {viewMode === "list" && (
-          <CoursesList
-            onEditCourse={handleEditCourse}
-            onCreateCourse={handleCreateCourse}
-            onDeleteCourse={handleDeleteCourse}
-          />
-        )}
+        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+          <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto p-0">
+            {selectedCourse && (
+              <CourseForm course={selectedCourse} onSave={handleSaveCourse} onCancel={handleCancelForm} variant="modal" />
+            )}
+          </DialogContent>
+        </Dialog>
 
-        {viewMode === "create" && <CourseForm onSave={handleSaveCourse} onCancel={handleCancelForm} />}
-
-        {viewMode === "edit" && selectedCourse && (
-          <CourseForm course={selectedCourse} onSave={handleSaveCourse} onCancel={handleCancelForm} />
-        )}
-
-        
+        <CourseDetailsModal course={selectedCourse} isOpen={isDetailsOpen} onClose={() => setIsDetailsOpen(false)} />
       </div>
     </div>
   )
