@@ -13,9 +13,13 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     "/auth/verify-otp",
   ]
 
-  return noDashboardRoutes.includes(pathname) ? (
-    <>{children}</>
-  ) : (
-    <DashboardLayout>{children}</DashboardLayout>
-  )
+  if (noDashboardRoutes.includes(pathname)) {
+    return <>{children}</>
+  }
+
+  if (pathname.startsWith("/dashboard")) {
+    return <>{children}</>
+  }
+
+  return <DashboardLayout>{children}</DashboardLayout>
 }

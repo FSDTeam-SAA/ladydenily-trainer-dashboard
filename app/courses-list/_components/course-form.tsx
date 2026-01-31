@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormItem, FormLabel, FormControl, FormField, FormMessage } from "@/components/ui/form"
@@ -12,7 +12,7 @@ import { Plus, X, Upload } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { VideoUploader } from "./video-uploader"
 import QuillEditor from "./QuillEditor"
-import { useCreateCourse } from "@/lib/coursesapi"
+import { useCreateCourse, useUpdateCourse } from "@/lib/coursesapi"
 import { toast } from "@/hooks/use-toast"
 
 interface UploadedFile {
@@ -38,11 +38,14 @@ interface CourseFormProps {
   course?: any
   onSave?: (course?: any) => void
   onCancel?: () => void
+  variant?: "page" | "modal"
 }
 
-export function CourseForm({ course, onSave, onCancel }: CourseFormProps) {
+export function CourseForm({ course, onSave, onCancel, variant = "page" }: CourseFormProps) {
   const { data: session } = useSession()
   const createCourseMutation = useCreateCourse()
+  const updateCourseMutation = useUpdateCourse()
+  const isEditMode = Boolean(course)
   const [modules, setModules] = useState<Module[]>([
     {
       tempId: crypto.randomUUID(),
@@ -63,9 +66,27 @@ export function CourseForm({ course, onSave, onCancel }: CourseFormProps) {
       description: course?.description || "",
       price: course?.price || "",
       offerPrice: course?.offerPrice || "",
-      coordinator: course?.coordinator || "",
+      coordinator: course?.coordinator?.[0]?.name || "",
     },
   })
+
+  useEffect(() => {
+    form.reset({
+      name: course?.name || "",
+      description: course?.description || "",
+      price: course?.price || "",
+      offerPrice: course?.offerPrice || "",
+      coordinator: course?.coordinator?.[0]?.name || "",
+    })
+    setPhotoFile(null)
+    if (course?.photo) {
+      const normalized = course.photo.replace(/\\/g, "/")
+      const src = normalized.startsWith("http") ? normalized : `/${normalized.replace(/^\/+/, "")}`
+      setPhotoPreview(src)
+    } else {
+      setPhotoPreview("")
+    }
+  }, [course, form])
 
   const updateModule = (index: number, key: keyof Module, value: any) => {
     const updatedModules = [...modules]
@@ -106,15 +127,10 @@ export function CourseForm({ course, onSave, onCancel }: CourseFormProps) {
   }
 
   const onSubmit = async (data: any) => {
-    if (course) {
-      onSave?.()
-      return
-    }
-
     if (!session?.accessToken) {
       toast({
         title: "Sign in required",
-        description: "Please sign in to create a course.",
+        description: "Please sign in to continue.",
         variant: "destructive",
       })
       return
@@ -126,7 +142,7 @@ export function CourseForm({ course, onSave, onCancel }: CourseFormProps) {
     formData.append("price", data.price.toString())
     formData.append("offerPrice", data.offerPrice.toString())
 
-    if (session.user?.id) {
+    if (!isEditMode && session.user?.id) {
       formData.append("coordinator", JSON.stringify([session.user.id]))
     }
 
@@ -134,23 +150,35 @@ export function CourseForm({ course, onSave, onCancel }: CourseFormProps) {
       formData.append("photo", photoFile)
     }
 
-    // Prepare modules with S3 URLs
-    const modulesData = modules.map((module) => ({
-      name: module.name,
-      videos: module.videos.map((v, index) => ({
-        name: v.name,
-        no: index + 1,
-        url: v.s3Url,
-      })),
-      resources: module.resources.map((r) => ({
-        name: r.name,
-        url: r.s3Url,
-      })),
-    }))
+    if (!isEditMode) {
+      // Prepare modules with S3 URLs
+      const modulesData = modules.map((module) => ({
+        name: module.name,
+        videos: module.videos.map((v, index) => ({
+          name: v.name,
+          no: index + 1,
+          url: v.s3Url,
+        })),
+        resources: module.resources.map((r) => ({
+          name: r.name,
+          url: r.s3Url,
+        })),
+      }))
 
-    formData.append("modules", JSON.stringify(modulesData))
+      formData.append("modules", JSON.stringify(modulesData))
+    }
 
     try {
+      if (isEditMode && course?._id) {
+        const response = await updateCourseMutation.mutateAsync({
+          id: course._id,
+          data: formData,
+          token: session.accessToken,
+        })
+        onSave?.(response?.data ?? response)
+        return
+      }
+
       const response = await createCourseMutation.mutateAsync({
         data: formData,
         token: session.accessToken,
@@ -158,7 +186,7 @@ export function CourseForm({ course, onSave, onCancel }: CourseFormProps) {
 
       onSave?.(response?.data ?? response)
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to create course"
+      const message = error instanceof Error ? error.message : "Failed to save course"
       toast({
         title: "Error",
         description: message,
@@ -168,7 +196,7 @@ export function CourseForm({ course, onSave, onCancel }: CourseFormProps) {
   }
 
   return (
-    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+    <div className={variant === "modal" ? "space-y-6 p-6 bg-gray-50" : "space-y-6 p-6 bg-gray-50 min-h-screen"}>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{course ? "Edit Course" : "Create Course"}</h1>
@@ -182,7 +210,7 @@ export function CourseForm({ course, onSave, onCancel }: CourseFormProps) {
             <CardContent className="p-8">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column */}
-                <div className="lg:col-span-1 space-y-6">
+                <div className={isEditMode ? "lg:col-span-3 space-y-6" : "lg:col-span-1 space-y-6"}>
                   {/* Course Name */}
                   <FormField
                     control={form.control}
@@ -316,77 +344,79 @@ export function CourseForm({ course, onSave, onCancel }: CourseFormProps) {
                 </div>
 
                 {/* Right Column - Modules */}
-                <div className="lg:col-span-2 space-y-4">
-                  {modules.map((module, moduleIndex) => (
-                    <Card key={module.tempId} className="border-gray-300 shadow-sm">
-                      <CardHeader className="pb-3 border-b border-gray-200">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-base">Module {moduleIndex + 1}</CardTitle>
-                          {modules.length > 1 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeModule(moduleIndex)}
-                              className="h-8 w-8 text-red-500 hover:text-red-700"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-4 space-y-4">
-                        {/* Module Name */}
-                        <div>
-                          <FormLabel className="text-sm font-medium">Module Name</FormLabel>
-                          <Input
-                            placeholder="Type modules name here ..."
-                            value={module.name}
-                            onChange={(e) => updateModule(moduleIndex, "name", e.target.value)}
-                            className="border-gray-300"
-                          />
-                        </div>
-
-                        {/* Video and Resources Grid */}
-                        <div className="grid grid-cols-2 gap-4">
+                {!isEditMode && (
+                  <div className="lg:col-span-2 space-y-4">
+                    {modules.map((module, moduleIndex) => (
+                      <Card key={module.tempId} className="border-gray-300 shadow-sm">
+                        <CardHeader className="pb-3 border-b border-gray-200">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base">Module {moduleIndex + 1}</CardTitle>
+                            {modules.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeModule(moduleIndex)}
+                                className="h-8 w-8 text-red-500 hover:text-red-700"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-4 space-y-4">
+                          {/* Module Name */}
                           <div>
-                            <VideoUploader
-                              videos={module.videos}
-                              onVideosChange={(videos) => updateModule(moduleIndex, "videos", videos)}
-                              label="Video"
-                              description="Upload your video."
-                              buttonText="Add Video"
-                              accept="video/*"
-                              icon="upload"
+                            <FormLabel className="text-sm font-medium">Module Name</FormLabel>
+                            <Input
+                              placeholder="Type modules name here ..."
+                              value={module.name}
+                              onChange={(e) => updateModule(moduleIndex, "name", e.target.value)}
+                              className="border-gray-300"
                             />
                           </div>
 
-                          <div>
-                            <VideoUploader
-                              videos={module.resources}
-                              onVideosChange={(resources) => updateModule(moduleIndex, "resources", resources)}
-                              label="Resources"
-                              description="Upload your PDF file."
-                              buttonText="Add PDF"
-                              accept=".pdf,application/pdf"
-                              icon="file"
-                            />
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          {/* Video and Resources Grid */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <VideoUploader
+                                videos={module.videos}
+                                onVideosChange={(videos) => updateModule(moduleIndex, "videos", videos)}
+                                label="Video"
+                                description="Upload your video."
+                                buttonText="Add Video"
+                                accept="video/*"
+                                icon="upload"
+                              />
+                            </div>
 
-                  {/* Add More Modules Button */}
-                  <Button
-                    type="button"
-                    onClick={addModule}
-                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add More Modules
-                  </Button>
-                </div>
+                            <div>
+                              <VideoUploader
+                                videos={module.resources}
+                                onVideosChange={(resources) => updateModule(moduleIndex, "resources", resources)}
+                                label="Resources"
+                                description="Upload your PDF file."
+                                buttonText="Add PDF"
+                                accept=".pdf,application/pdf"
+                                icon="file"
+                              />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+
+                    {/* Add More Modules Button */}
+                    <Button
+                      type="button"
+                      onClick={addModule}
+                      className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add More Modules
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -399,9 +429,15 @@ export function CourseForm({ course, onSave, onCancel }: CourseFormProps) {
             <Button
               type="submit"
               className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
-              disabled={createCourseMutation.isPending}
+              disabled={createCourseMutation.isPending || updateCourseMutation.isPending}
             >
-              {createCourseMutation.isPending ? "Creating..." : "Create Course"}
+              {isEditMode
+                ? updateCourseMutation.isPending
+                  ? "Saving..."
+                  : "Save Changes"
+                : createCourseMutation.isPending
+                  ? "Creating..."
+                  : "Create Course"}
             </Button>
           </div>
         </form>

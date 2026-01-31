@@ -16,6 +16,7 @@ export async function middleware(request: NextRequest) {
   // Protected routes
   const protectedRoutes = ["/dashboard", "/trainer", "/user", "/courses", "/signal-send", "/offer"]
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route))
+  const allowedRoles = ["trainer", "admin"]
 
   // 🔒 If no token → redirect to login
   if (!token) {
@@ -27,19 +28,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // 🚫 If logged in but NOT a trainer → block access to everything
-  if (token.role !== "trainer") {
+  // 🚫 If logged in but NOT allowed → block access to protected routes
+  if (isProtectedRoute && !allowedRoles.includes(token.role as string)) {
     const loginUrl = new URL("/auth/login", request.url)
     loginUrl.searchParams.set("error", "unauthorized")
     return NextResponse.redirect(loginUrl)
   }
 
-  // 🧭 If a trainer tries to access /auth pages, redirect home
-  if (isAuthPage && token.role === "trainer") {
+  // 🧭 If a logged-in user tries to access /auth pages, redirect home
+  if (isAuthPage && allowedRoles.includes(token.role as string)) {
     return NextResponse.redirect(new URL("/", request.url))
   }
 
-  // ✅ Allow trainer access
+  // ✅ Allow access
   return NextResponse.next()
 }
 

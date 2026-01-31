@@ -30,7 +30,7 @@ const refreshAccessToken = async (token: JWT): Promise<JWT> => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/refresh-token`, {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken: token.refreshToken }),
