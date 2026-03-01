@@ -77,7 +77,7 @@ export interface CreateModuleData {
 }
 
 // API Base URL
-const API_BASE_URL = "http://localhost:8001/api/v1"
+const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8001/api/v1"
 
 // API Functions
 export const courseApi = {
@@ -122,7 +122,7 @@ export const courseApi = {
     }
 
     const response = await fetch(`${API_BASE_URL}/course/courses/${id}`, {
-      method: "PUT",
+      method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -196,7 +196,7 @@ export const moduleApi = {
     }
 
     const response = await fetch(`${API_BASE_URL}/course/modules/${id}`, {
-      method: "PUT",
+      method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,
       },

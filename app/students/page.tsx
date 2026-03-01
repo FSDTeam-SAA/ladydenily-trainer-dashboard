@@ -1,62 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { studentsAPI, type User } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { studentsAPI } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Trash2 } from "lucide-react";
-import { toast } from "sonner";
 import { UserPagination } from "@/components/user-pagination";
-import { DeleteConfirmModal } from "@/components/delete-confirm-modal";
-import Image from "next/image";
 
 export default function UserPage() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [deleteModal, setDeleteModal] = useState<{
-    isOpen: boolean;
-    user: User | null;
-  }>({
-    isOpen: false,
-    user: null,
-  });
-
-  const queryClient = useQueryClient();
+  const itemsPerPage = 10;
 
   const {
     data: usersData,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["students", currentPage],
-    queryFn: () => studentsAPI.getStudents(currentPage, 10),
+    queryKey: ["trainer-students"],
+    queryFn: () => studentsAPI.getTrainerStudents(),
   });
 
-  const deleteUserMutation = useMutation({
-    mutationFn: studentsAPI.deleteStudent,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["students"] });
-      toast.success("User deleted successfully");
-      setDeleteModal({ isOpen: false, user: null });
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to delete user");
-    },
-  });
-
-  const handleDeleteUser = (user: User) => {
-    setDeleteModal({ isOpen: true, user });
-  };
-
-  const confirmDelete = () => {
-    if (deleteModal.user) {
-      deleteUserMutation.mutate(deleteModal.user._id);
-    }
-  };
-
-  const users = usersData?.data?.students || [];
-  const meta = usersData?.data?.meta;
+  const students = usersData?.data?.students || [];
+  const total = usersData?.data?.totalUniqueStudents ?? students.length;
+  const totalPages = Math.ceil(total / itemsPerPage) || 1;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedStudents = students.slice(startIndex, startIndex + itemsPerPage);
 
   if (error) {
     return (
@@ -85,18 +53,19 @@ export default function UserPage() {
             <thead className="bg-muted/50">
               <tr>
                 <th className="text-left p-4 font-medium text-muted-foreground">
-                  Name
+                  Student
                 </th>
                 <th className="text-left p-4 font-medium text-muted-foreground">
-                  {" "}
-                  Courses Enroll
+                  Email
                 </th>
                 <th className="text-left p-4 font-medium text-muted-foreground">
-                  {" "}
+                  Phone
+                </th>
+                <th className="text-left p-4 font-medium text-muted-foreground">
+                  Courses
+                </th>
+                <th className="text-left p-4 font-medium text-muted-foreground">
                   Total Price
-                </th>
-                <th className="text-left p-4 font-medium text-muted-foreground">
-                  Actions
                 </th>
               </tr>
             </thead>
@@ -122,16 +91,16 @@ export default function UserPage() {
                         <Skeleton className="h-4 w-28" />
                       </td>
                       <td className="p-4">
-                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-4 w-48" />
                       </td>
                       <td className="p-4">
-                        <Skeleton className="h-8 w-8" />
+                        <Skeleton className="h-4 w-28" />
                       </td>
                     </tr>
                   ))
-                : users.map((user, index) => (
+                : paginatedStudents.length > 0 ? paginatedStudents.map((entry, index) => (
                     <tr
-                      key={user._id}
+                      key={entry.student._id}
                       className={
                         index % 2 === 0 ? "bg-background" : "bg-muted/20"
                       }
@@ -140,57 +109,54 @@ export default function UserPage() {
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10">
                             <AvatarImage
-                              src={user.avatar?.url || "/placeholder.svg"}
-                              alt={user.name}
+                              src={entry.student.avatar?.url || "/placeholder.svg"}
+                              alt={entry.student.name}
                             />
                             <AvatarFallback>
-                              {user.name.charAt(0).toUpperCase()}
+                              {entry.student.name.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div>
                             <span className="font-medium text-foreground">
-                              {user.name}
+                              {entry.student.name}
                             </span>
                             <p className="text-xs text-muted-foreground">
-                              @{user.email}
+                              {entry.student.role}
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="p-4 text-muted-foreground">
-                        <div className="flex items-center gap-3">
-                          <div>
-                            <Image
-                              src={user.avatar?.url || "/placeholder.svg"}
-                              alt={user.name}
-                              width={40}
-                              height={40}
-                            />
-                          </div>
-                          <div>
-                            <span className="font-medium text-foreground">
-                              Technical  Analysis Mastery
-                            </span>
-                            <p className="text-xs text-muted-foreground">
-                              Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                            </p>
-                          </div>
+                        {entry.student.email}
+                      </td>
+                      <td className="p-4 text-muted-foreground">
+                        {entry.student.phone || "N/A"}
+                      </td>
+                      <td className="p-4 text-muted-foreground">
+                        <div>
+                          <span className="font-medium text-foreground">
+                            {entry.courses.map((course) => course.name).join(", ") ||
+                              "No enrolled course"}
+                          </span>
+                          <p className="text-xs text-muted-foreground">
+                            {entry.enrolledCourseCount} course(s) enrolled
+                          </p>
                         </div>
                       </td>
-                      <td className="p-4 text-foreground">$500</td>
-                      <td className="p-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDeleteUser(user)}
-                          disabled={deleteUserMutation.isPending}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <td className="p-4 text-foreground">
+                        $
+                        {entry.courses
+                          .reduce((sum, course) => sum + (course.price || 0), 0)
+                          .toFixed(2)}
                       </td>
                     </tr>
-                  ))}
+                  )) : (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-sm text-muted-foreground">
+                        No students found.
+                      </td>
+                    </tr>
+                  )}
             </tbody>
           </table>
         </div>
@@ -199,32 +165,23 @@ export default function UserPage() {
         <div className="border-t border-border p-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              {meta
-                ? `Showing ${(currentPage - 1) * 10 + 1} to ${Math.min(
-                    currentPage * 10,
-                    meta.total
-                  )} of ${meta.total} results`
-                : "Loading..."}
+              {isLoading
+                ? "Loading..."
+                : `Showing ${total === 0 ? 0 : startIndex + 1} to ${Math.min(
+                    currentPage * itemsPerPage,
+                    total
+                  )} of ${total} results`}
             </p>
-            {meta && (
+            {!isLoading && totalPages > 1 && (
               <UserPagination
                 currentPage={currentPage}
-                totalPages={meta.totalPages}
+                totalPages={totalPages}
                 onPageChange={setCurrentPage}
               />
             )}
           </div>
         </div>
       </div>
-
-      <DeleteConfirmModal
-        isOpen={deleteModal.isOpen}
-        onClose={() => setDeleteModal({ isOpen: false, user: null })}
-        onConfirm={confirmDelete}
-        title="Delete User"
-        description={`Are you sure you want to delete ${deleteModal.user?.name}? This action cannot be undone.`}
-        isLoading={deleteUserMutation.isPending}
-      />
     </div>
   );
 }

@@ -29,6 +29,7 @@ const navigation = [
   { name: "Courses", href: "/courses-list", icon: BookOpenText },
   { name: "Students", href: "/students", icon: User },
   { name: "Community", href: "/community", icon: Radio },
+  { name: "Settings", href: "/settings", icon: Radio },
 ];
 
 const handleSignOut = () => {
