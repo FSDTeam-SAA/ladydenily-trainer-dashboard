@@ -38,7 +38,7 @@ const handleSignOut = () => {
 };
 
 export function Sidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   return (
@@ -59,9 +59,19 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-2 py-4">
         {navigation.map((item) => {
-          // Improved isActive check to handle dynamic routes and trailing slashes
-          const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+          const normalizedPathname =
+            pathname.length > 1 && pathname.endsWith("/")
+              ? pathname.slice(0, -1)
+              : pathname;
+          const normalizedHref =
+            item.href.length > 1 && item.href.endsWith("/")
+              ? item.href.slice(0, -1)
+              : item.href;
+          const isOverviewRoute = normalizedHref === "/dashboard";
+          const isActive = isOverviewRoute
+            ? normalizedPathname === "/dashboard" || normalizedPathname === "/"
+            : normalizedPathname === normalizedHref ||
+              normalizedPathname.startsWith(normalizedHref + "/");
           return (
             <Link
               key={item.name}

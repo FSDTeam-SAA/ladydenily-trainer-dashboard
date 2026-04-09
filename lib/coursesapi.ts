@@ -6,12 +6,14 @@ export interface Course {
   _id: string
   name: string
   description: string
-  photo?: string
+  photo?: string | null
   price: number
   offerPrice: number
   coordinator: Coordinator[]
   modules: Module[]
   enrolled: any[]
+  createdAt?: string
+  updatedAt?: string
   __v: number
 }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useSession } from "next-auth/react"
 import { useCourses, useDeleteCourse } from "@/lib/coursesapi"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -16,13 +16,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Edit, Eye, Trash2, Search, Plus } from "lucide-react"
-import { format } from "date-fns"
 import { toast } from "@/hooks/use-toast"
 import type { Course } from "@/lib/coursesapi"
 import { DeleteConfirmationModal } from "./delete-confirmation-modal"
-import Image from "next/image"
 
 interface CoursesListProps {
   onEditCourse?: (course: Course) => void
@@ -47,28 +44,58 @@ export function CoursesList({ onEditCourse, onCreateCourse, onViewCourse, onDele
   const { data: coursesResponse, isLoading, error } = useCourses(session?.accessToken)
   const deleteCourseMutation = useDeleteCourse()
 
-  const courses = coursesResponse?.data || []
+  const courses = useMemo(() => {
+    const responseData = coursesResponse?.data
+
+    if (Array.isArray(responseData)) {
+      return responseData
+    }
+
+    if (
+      responseData &&
+      typeof responseData === "object" &&
+      "course" in responseData &&
+      Array.isArray(responseData.course)
+    ) {
+      return responseData.course
+    }
+
+    return []
+  }, [coursesResponse])
+
+  const searchValue = searchTerm.trim().toLowerCase()
 
   // Filter courses based on search term
   const filteredCourses = useMemo(() => {
-    if (!searchTerm) return courses
+    if (!searchValue) return courses
+
     return courses.filter((course) => {
-      const description = course.description ? course.description.replace(/<[^>]+>/g, "") : ""
-      const coordinatorMatch = course.coordinator?.some((coord) =>
-        coord.name.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
+      const courseName = getCourseName(course).toLowerCase()
+      const description = getCourseDescription(course).toLowerCase()
+      const coordinatorMatch = Array.isArray(course.coordinator)
+        ? course.coordinator.some((coord) => getSafeText(coord?.name).toLowerCase().includes(searchValue))
+        : false
+
       return (
-        course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        courseName.includes(searchValue) ||
+        description.includes(searchValue) ||
         coordinatorMatch
       )
     })
-  }, [courses, searchTerm])
+  }, [courses, searchValue])
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredCourses.length / itemsPerPage)
+  const totalPages = Math.max(Math.ceil(filteredCourses.length / itemsPerPage), 1)
   const startIndex = (currentPage - 1) * itemsPerPage
   const paginatedCourses = filteredCourses.slice(startIndex, startIndex + itemsPerPage)
+
+  useEffect(() => {
+    const lastPage = Math.max(totalPages, 1)
+
+    if (currentPage > lastPage) {
+      setCurrentPage(lastPage)
+    }
+  }, [currentPage, totalPages])
 
   const handleDeleteClick = (course: Course) => {
     setDeleteModal({
@@ -107,14 +134,16 @@ export function CoursesList({ onEditCourse, onCreateCourse, onViewCourse, onDele
     setDeleteModal({ isOpen: false, course: null })
   }
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price?: number | null) => {
+    const safePrice = Number(price)
+
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
-    }).format(price)
+    }).format(Number.isFinite(safePrice) ? safePrice : 0)
   }
 
-  const normalizePhotoSrc = (src?: string) => {
+  const normalizePhotoSrc = (src?: string | null) => {
     if (!src) return "/placeholder.svg?height=48&width=48&query=course"
     const normalized = src.replace(/\\/g, "/")
     if (normalized.startsWith("http")) return normalized
@@ -197,38 +226,45 @@ export function CoursesList({ onEditCourse, onCreateCourse, onViewCourse, onDele
                 <TableRow key={course._id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div>
-                        <Image src={normalizePhotoSrc(course.photo)} alt={course.name} width={48} height={48} />
+                      <div className="h-12 w-12 overflow-hidden rounded-md bg-muted">
+                        <img
+                          src={normalizePhotoSrc(course.photo)}
+                          alt={getCourseName(course)}
+                          className="h-full w-full object-cover"
+                          onError={(event) => {
+                            event.currentTarget.src = "/placeholder.svg?height=48&width=48&query=course"
+                          }}
+                        />
                       </div>
                       <div>
-                        <div className="font-medium">{course.name}</div>
+                        <div className="font-medium">{getCourseName(course)}</div>
                         <div className="text-sm text-muted-foreground line-clamp-1">
-                          {course.description ? course.description.replace(/<[^>]+>/g, "") : "No description"}
+                          {getCourseDescription(course)}
                         </div>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{course.enrolled?.length || 0}</Badge>
+                    <Badge variant="secondary">{Array.isArray(course.enrolled) ? course.enrolled.length : 0}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{course.modules?.length || 0}</Badge>
+                    <Badge variant="outline">{Array.isArray(course.modules) ? course.modules.length : 0}</Badge>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm">4 Weeks</span>
+                    <span className="text-sm">{getCourseDeadline(course)}</span>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
-                      <div className="font-medium">{formatPrice(course.price)}</div>
-                      {course.offerPrice !== course.price && (
+                      <div className="font-medium">{formatPrice(getDisplayPrice(course))}</div>
+                      {hasOfferPrice(course) && (
                         <div className="text-sm text-muted-foreground line-through">
-                          {formatPrice(course.offerPrice)}
+                          {formatPrice(course.price)}
                         </div>
                       )}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-muted-foreground">{format(new Date(), "dd MMM, yyyy")}</span>
+                    <span className="text-sm text-muted-foreground">{formatDate(course.createdAt)}</span>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -259,7 +295,7 @@ export function CoursesList({ onEditCourse, onCreateCourse, onViewCourse, onDele
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredCourses.length)} of{" "}
+            Showing {filteredCourses.length === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredCourses.length)} of{" "}
             {filteredCourses.length} results
           </div>
           <Pagination>
@@ -316,4 +352,65 @@ export function CoursesList({ onEditCourse, onCreateCourse, onViewCourse, onDele
       />
     </div>
   )
+}
+
+function getSafeText(value: unknown, fallback = "") {
+  return typeof value === "string" ? value : fallback
+}
+
+function stripHtml(value: unknown) {
+  return getSafeText(value).replace(/<[^>]+>/g, "").trim()
+}
+
+function getCourseName(course: Course) {
+  return getSafeText(course?.name, "Untitled course")
+}
+
+function getCourseDescription(course: Course) {
+  const description = stripHtml(course?.description)
+  return description || "No description"
+}
+
+function getCourseDeadline(course: Course) {
+  const firstAssignmentStart = Array.isArray(course.modules)
+    ? course.modules.find((module) => Array.isArray(module.assignment) && module.assignment.length > 0)?.assignment?.[0]?.start
+    : ""
+
+  return formatDate(firstAssignmentStart, "4 Weeks")
+}
+
+function getDisplayPrice(course: Course) {
+  const offerPrice = Number(course.offerPrice)
+  const price = Number(course.price)
+
+  if (Number.isFinite(offerPrice) && offerPrice > 0) {
+    return offerPrice
+  }
+
+  return Number.isFinite(price) ? price : 0
+}
+
+function hasOfferPrice(course: Course) {
+  const offerPrice = Number(course.offerPrice)
+  const price = Number(course.price)
+
+  return Number.isFinite(offerPrice) && Number.isFinite(price) && offerPrice > 0 && offerPrice !== price
+}
+
+function formatDate(value?: string, fallback = "N/A") {
+  if (!value) {
+    return fallback
+  }
+
+  const parsedDate = new Date(value)
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return fallback
+  }
+
+  return parsedDate.toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })
 }
