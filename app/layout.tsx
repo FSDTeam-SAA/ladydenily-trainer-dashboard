@@ -10,8 +10,8 @@ import { LayoutWrapper } from "@/components/layout-wrapper"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Legendary Trading Academy",
-  description: "Admin Dashboard for Legendary Trading Academy",
+  title: "Trainer Legendary Trading Academy",
+  description: "Trainer Dashboard for Legendary Trading Academy",
   generator: "v0.app",
 }
 

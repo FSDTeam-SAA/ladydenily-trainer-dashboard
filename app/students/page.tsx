@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { studentsAPI } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,6 +25,14 @@ export default function UserPage() {
   const totalPages = Math.ceil(total / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedStudents = students.slice(startIndex, startIndex + itemsPerPage);
+
+  useEffect(() => {
+    const lastPage = Math.max(totalPages, 1);
+
+    if (currentPage > lastPage) {
+      setCurrentPage(lastPage);
+    }
+  }, [currentPage, totalPages]);
 
   if (error) {
     return (

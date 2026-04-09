@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { trainersAPI, type User } from "@/lib/api"
 import { Button } from "@/components/ui/button"
@@ -55,6 +55,14 @@ export default function TrainerPage() {
 
   const trainers = trainersData?.data?.trainers || []
   const meta = trainersData?.data?.meta
+
+  useEffect(() => {
+    const lastPage = Math.max(meta?.totalPages ?? 1, 1)
+
+    if (currentPage > lastPage) {
+      setCurrentPage(lastPage)
+    }
+  }, [currentPage, meta?.totalPages])
 
   if (error) {
     return (
@@ -166,7 +174,7 @@ export default function TrainerPage() {
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
               {meta
-                ? `Showing ${(currentPage - 1) * 10 + 1} to ${Math.min(currentPage * 10, meta.total)} of ${meta.total} results`
+                ? `Showing ${meta.total === 0 ? 0 : (currentPage - 1) * 10 + 1} to ${Math.min(currentPage * 10, meta.total)} of ${meta.total} results`
                 : "Loading..."}
             </p>
             {meta && (

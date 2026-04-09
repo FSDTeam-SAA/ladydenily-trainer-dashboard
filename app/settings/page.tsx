@@ -7,6 +7,13 @@ import { profileAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,6 +38,11 @@ const DEFAULT_FORM: ProfileForm = {
   nationality: "",
   address: "",
 };
+
+const GENDER_OPTIONS = [
+  { label: "Male", value: "male" },
+  { label: "Female", value: "female" },
+];
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -63,7 +75,11 @@ export default function SettingsPage() {
       name: profile.name || "",
       phone: profile.phone || "",
       age: profile.age || "",
-      gender: profile.gender || "",
+      gender:
+        typeof profile.gender === "string" &&
+        GENDER_OPTIONS.some((option) => option.value === profile.gender.toLowerCase())
+          ? profile.gender.toLowerCase()
+          : "",
       nationality: profile.nationality || "",
       address: typeof profile.address === "string" ? profile.address : "",
     });
@@ -324,12 +340,22 @@ export default function SettingsPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="gender">Gender</Label>
-            <Input
-              id="gender"
-              value={form.gender}
-              onChange={(e) => handleInputChange("gender", e.target.value)}
-            />
+            <Label>Gender</Label>
+            <Select
+              value={form.gender || undefined}
+              onValueChange={(value) => handleInputChange("gender", value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select gender" />
+              </SelectTrigger>
+              <SelectContent>
+                {GENDER_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

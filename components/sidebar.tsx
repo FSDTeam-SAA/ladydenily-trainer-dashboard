@@ -11,6 +11,7 @@ import {
   Radio,
   LogOut,
   BookOpenText,
+  Settings,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "./ui/button";
@@ -25,11 +26,11 @@ import {
 import Image from "next/image";
 
 const navigation = [
-  { name: "Overview", href: "/", icon: LayoutDashboard },
+  { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { name: "Courses", href: "/courses-list", icon: BookOpenText },
   { name: "Students", href: "/students", icon: User },
   { name: "Community", href: "/community", icon: Radio },
-  { name: "Settings", href: "/settings", icon: Radio },
+  { name: "Settings", href: "/settings", icon: Settings },
 ];
 
 const handleSignOut = () => {
@@ -44,7 +45,7 @@ export function Sidebar() {
     <div className="flex max-h-screen w-52 flex-col bg-sidebar border-r border-sidebar-border sticky top-0">
       {/* Logo */}
       <div className="flex items-center p-4">
-        <Link href="/">
+        <Link href="/dashboard">
           <Image
             src="/LTA_LOGO.png"
             alt="Logo"

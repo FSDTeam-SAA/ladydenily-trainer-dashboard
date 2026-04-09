@@ -10,39 +10,46 @@ interface StudentPaginationProps {
 }
 
 export function StudentPagination({ currentPage, totalPages, onPageChange }: StudentPaginationProps) {
+  const safeTotalPages = Math.max(totalPages, 1)
+  const safeCurrentPage = Math.min(Math.max(currentPage, 1), safeTotalPages)
+
   const getVisiblePages = () => {
-    const pages = []
+    const pages: Array<number | "..."> = []
     const maxVisible = 5
 
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) {
+    if (safeTotalPages <= maxVisible) {
+      for (let i = 1; i <= safeTotalPages; i++) {
         pages.push(i)
       }
     } else {
-      if (currentPage <= 3) {
+      if (safeCurrentPage <= 3) {
         for (let i = 1; i <= 4; i++) {
           pages.push(i)
         }
         pages.push("...")
-        pages.push(totalPages)
-      } else if (currentPage >= totalPages - 2) {
+        pages.push(safeTotalPages)
+      } else if (safeCurrentPage >= safeTotalPages - 2) {
         pages.push(1)
         pages.push("...")
-        for (let i = totalPages - 3; i <= totalPages; i++) {
+        for (let i = safeTotalPages - 3; i <= safeTotalPages; i++) {
           pages.push(i)
         }
       } else {
         pages.push(1)
         pages.push("...")
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+        for (let i = safeCurrentPage - 1; i <= safeCurrentPage + 1; i++) {
           pages.push(i)
         }
         pages.push("...")
-        pages.push(totalPages)
+        pages.push(safeTotalPages)
       }
     }
 
     return pages
+  }
+
+  if (safeTotalPages <= 1) {
+    return null
   }
 
   return (
@@ -50,8 +57,8 @@ export function StudentPagination({ currentPage, totalPages, onPageChange }: Stu
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
+        onClick={() => onPageChange(safeCurrentPage - 1)}
+        disabled={safeCurrentPage === 1}
         className="text-muted-foreground hover:text-foreground"
       >
         <ChevronLeft className="h-4 w-4" />
@@ -64,10 +71,10 @@ export function StudentPagination({ currentPage, totalPages, onPageChange }: Stu
           ) : (
             <Button
               size="sm"
-              variant={currentPage === page ? "default" : "ghost"}
-              onClick={() => onPageChange(page as number)}
+              variant={safeCurrentPage === page ? "default" : "ghost"}
+              onClick={() => onPageChange(page)}
               className={
-                currentPage === page
+                safeCurrentPage === page
                   ? "bg-primary text-primary-foreground hover:bg-primary/90"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
               }
@@ -81,8 +88,8 @@ export function StudentPagination({ currentPage, totalPages, onPageChange }: Stu
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
+        onClick={() => onPageChange(safeCurrentPage + 1)}
+        disabled={safeCurrentPage === safeTotalPages}
         className="text-muted-foreground hover:text-foreground"
       >
         <ChevronRight className="h-4 w-4" />
