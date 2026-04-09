@@ -48,7 +48,7 @@ export function CourseForm({ course, onSave, onCancel, variant = "page" }: Cours
   const isEditMode = Boolean(course)
   const [modules, setModules] = useState<Module[]>([
     {
-      tempId: crypto.randomUUID(),
+      tempId: createTempId(),
       name: "",
       videos: [],
       resources: [],
@@ -98,7 +98,7 @@ export function CourseForm({ course, onSave, onCancel, variant = "page" }: Cours
     setModules([
       ...modules,
       {
-        tempId: crypto.randomUUID(),
+        tempId: createTempId(),
         name: "",
         videos: [],
         resources: [],
@@ -444,4 +444,12 @@ export function CourseForm({ course, onSave, onCancel, variant = "page" }: Cours
       </Form>
     </div>
   )
+}
+
+function createTempId() {
+  if (typeof globalThis !== "undefined" && globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
+    return globalThis.crypto.randomUUID()
+  }
+
+  return `module-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
