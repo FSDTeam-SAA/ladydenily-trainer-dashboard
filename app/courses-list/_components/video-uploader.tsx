@@ -246,10 +246,16 @@ export function VideoUploader({
                 key={videoIndex}
                 className="space-y-2 p-3 bg-blue-50 rounded-lg border border-blue-200"
               >
+                {icon === "upload" && (
+                  <video controls preload="metadata" className="w-full rounded-md border bg-black/5">
+                    <source src={video.s3Url || video.url} type={video.type || "video/mp4"} />
+                    Your browser does not support the video tag.
+                  </video>
+                )}
                 <div className="flex items-center gap-3 flex-1">
                   <Upload className="w-5 h-5 text-blue-600" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{video.name.slice(0, 4)}</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{video.name}</p>
                     <p className="text-xs text-gray-500">
                       {formatFileSize(video.size)}
                       {video.s3Url && " - Uploaded to S3"}
@@ -266,7 +272,7 @@ export function VideoUploader({
                       variant="outline"
                       size="sm"
                       className="h-8 bg-transparent"
-                      onClick={() => window.open(video.url, "_blank")}
+                      onClick={() => window.open(video.s3Url || video.url, "_blank")}
                     >
                       <Play className="w-3 h-3 mr-1" />
                       Play

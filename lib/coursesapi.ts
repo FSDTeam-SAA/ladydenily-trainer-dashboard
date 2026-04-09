@@ -70,8 +70,19 @@ export interface CreateCourseData {
 
 export interface CreateModuleData {
   name: string
-  video?: File[]
-  resources?: File[]
+  videoFiles?: File[]
+  resourceFiles?: File[]
+  videos?: {
+    name: string
+    no?: number
+    url: string
+    public_id?: string
+  }[]
+  resources?: {
+    name: string
+    url: string
+    public_id?: string
+  }[]
   assignment?: {
     title: string
     start: string
@@ -178,14 +189,22 @@ export const moduleApi = {
   updateModule: async (id: string, data: Partial<CreateModuleData>, token: string): Promise<any> => {
     const formData = new FormData()
 
-    if (data.name) formData.append("name", data.name)
+    if (data.name !== undefined) formData.append("name", data.name)
 
-    if (data.video) {
-      data.video.forEach((file) => formData.append("video", file))
+    if (data.videoFiles) {
+      data.videoFiles.forEach((file) => formData.append("video", file))
     }
 
-    if (data.resources) {
-      data.resources.forEach((file) => formData.append("resources", file))
+    if (data.videos !== undefined) {
+      formData.append("videos", JSON.stringify(data.videos))
+    }
+
+    if (data.resourceFiles) {
+      data.resourceFiles.forEach((file) => formData.append("resources", file))
+    }
+
+    if (data.resources !== undefined) {
+      formData.append("resources", JSON.stringify(data.resources))
     }
 
     if (data.assignment) {
