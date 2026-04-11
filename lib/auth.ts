@@ -74,14 +74,17 @@ export const authOptions: NextAuthOptions = {
         try {
           const response = await authAPI.login(credentials.email, credentials.password)
 
-          console.log("RRRRRRRRRRRRRR", response)
-
           if (response.success && response.data) {
+            const role = response.data.role || response.data.user?.role
+            if (role !== "trainer") {
+              return null
+            }
+
             return {
               id: response.data._id,
               email: response.data.user.email,
               name: response.data.user.name,
-              role: response.data.role,
+              role,
               accessToken: response.data.accessToken,
               refreshToken: response.data.refreshToken,
             }
@@ -104,8 +107,6 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
-
-      console.log("UUUUUUUUUUUUUUU", token)
       if (user) {
         token.role = user.role
         token.accessToken = user.accessToken
