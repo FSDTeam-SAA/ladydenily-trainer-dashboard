@@ -20,21 +20,25 @@ export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
+  const authError = searchParams.get("error")
 
   useEffect(() => {
-    // If user already has a session → redirect appropriately
+    if (authError === "trainer_only") {
+      setError("Only trainer accounts are allowed to login.")
+      toast.error("Only trainer accounts are allowed to login.")
+    }
+  }, [authError])
+
+  useEffect(() => {
     const checkSession = async () => {
       const session = await getSession()
-
-      console.log(session)
       if (session?.user?.role === "trainer") {
         router.push("/")
-      } else if (session) {
-        router.push(callbackUrl)
       }
     }
+
     checkSession()
-  }, [router, callbackUrl])
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,13 +56,14 @@ export default function LoginPage() {
         toast.error("Invalid email or password")
         setError("Invalid email or password")
       } else {
-        toast.success("Login successful!")
         const session = await getSession()
 
         if (session?.user?.role === "trainer") {
-          router.push("/") // 👈 redirect trainer to home
-        } else {
+          toast.success("Login successful!")
           router.push(callbackUrl)
+        } else {
+          toast.error("Only trainer accounts are allowed to login.")
+          setError("Only trainer accounts are allowed to login.")
         }
       }
     } catch (error) {
